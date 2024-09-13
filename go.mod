@@ -6,8 +6,9 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-bamboo/pkg v0.1.0
 	github.com/gofrs/flock v0.12.1
+	github.com/mcuadros/go-defaults v1.2.0
 	github.com/yuin/gopher-lua v1.1.1
-	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
+	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 )
 
 require (

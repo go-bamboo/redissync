@@ -1,4 +1,4 @@
-package reader
+package aof
 
 import (
 	"bufio"
@@ -6,6 +6,7 @@ import (
 	"container/list"
 	"context"
 	"fmt"
+	"github.com/go-bamboo/redissync/reader/rdb"
 	"io"
 	"os"
 	"path"
@@ -721,8 +722,8 @@ func (aofInfo *INFO) ParsingSingleAppendOnlyFile(ctx context.Context, FileName s
 		}
 	} else { //Skipped RDB checksum and has not been processed yet.
 		log.Infof("Reading RDB Base File on AOF loading...")
-		rdbOpt := RdbReaderOptions{Filepath: AOFFilepath}
-		ldRDB := NewRDBReader(&rdbOpt)
+		rdbOpt := rdb.RdbReaderOptions{Filepath: AOFFilepath}
+		ldRDB := rdb.NewRDBReader(&rdbOpt)
 		ldRDB.StartRead(ctx)
 		return AOFOk
 	}

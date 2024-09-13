@@ -1,4 +1,4 @@
-package reader
+package rdb
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/go-bamboo/redissync/entry"
 	"github.com/go-bamboo/redissync/log"
 	"github.com/go-bamboo/redissync/rdb"
+	"github.com/go-bamboo/redissync/reader"
 	"github.com/go-bamboo/redissync/utils"
 )
 
@@ -16,8 +17,7 @@ type RdbReaderOptions struct {
 }
 
 type rdbReader struct {
-	ch chan *entry.Entry
-
+	ch   chan *entry.Entry
 	stat struct {
 		Name          string `json:"name"`
 		Status        string `json:"status"`
@@ -30,7 +30,7 @@ type rdbReader struct {
 	}
 }
 
-func NewRDBReader(opts *RdbReaderOptions) Reader {
+func NewRDBReader(opts *RdbReaderOptions) reader.Reader {
 	absolutePath := utils.GetAbsPath(opts.Filepath)
 	r := new(rdbReader)
 	r.stat.Name = "rdb_reader"

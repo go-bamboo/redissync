@@ -1,4 +1,4 @@
-package reader
+package aof
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/go-bamboo/redissync/aof"
 	"github.com/go-bamboo/redissync/entry"
 	"github.com/go-bamboo/redissync/log"
+	"github.com/go-bamboo/redissync/reader"
 	"github.com/go-bamboo/redissync/utils"
 )
 
@@ -45,7 +46,7 @@ func (r *aofReader) StatusConsistent() bool {
 	return r.stat.AOFFileSentBytes == r.stat.AOFFileSizeBytes
 }
 
-func NewAOFReader(opts *AOFReaderOptions) Reader {
+func NewAOFReader(opts *AOFReaderOptions) reader.Reader {
 	log.Infof("NewAOFReader: path=[%s]", opts.Filepath)
 	absolutePath, err := filepath.Abs(opts.Filepath)
 	if err != nil {

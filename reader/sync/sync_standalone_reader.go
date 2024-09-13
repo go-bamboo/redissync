@@ -1,4 +1,4 @@
-package reader
+package sync
 
 import (
 	"bufio"
@@ -13,42 +13,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/go-bamboo/redissync/client"
 	"github.com/go-bamboo/redissync/entry"
 	"github.com/go-bamboo/redissync/log"
 	"github.com/go-bamboo/redissync/rdb"
+	"github.com/go-bamboo/redissync/reader"
 	"github.com/go-bamboo/redissync/utils"
 	rotate "github.com/go-bamboo/redissync/utils/file_rotate"
-
-	"github.com/dustin/go-humanize"
+	defaults "github.com/mcuadros/go-defaults"
 )
-
-type SyncReaderOptions struct {
-	Cluster       bool   `mapstructure:"cluster" default:"false"`
-	Address       string `mapstructure:"address" default:""`
-	Username      string `mapstructure:"username" default:""`
-	Password      string `mapstructure:"password" default:""`
-	Tls           bool   `mapstructure:"tls" default:"false"`
-	SyncRdb       bool   `mapstructure:"sync_rdb" default:"true"`
-	SyncAof       bool   `mapstructure:"sync_aof" default:"true"`
-	PreferReplica bool   `mapstructure:"prefer_replica" default:"false"`
-	TryDiskless   bool   `mapstructure:"try_diskless" default:"false"`
-
-	// advanced
-	StatusPort int    `mapstructure:"status_port" default:"0"`
-	AwsPSync   string `mapstructure:"aws_psync" default:""` // 10.0.0.1:6379@nmfu2sl5osync,10.0.0.1:6379@xhma21xfkssync
-}
-
-func (opt *SyncReaderOptions) GetPSyncCommand(address string) string {
-	items := strings.Split(opt.AwsPSync, ",")
-	for _, item := range items {
-		if strings.HasPrefix(item, address) {
-			return strings.Split(item, "@")[1]
-		}
-	}
-	log.Panicf("can not find aws psync command. address=[%s],aws_psync=[%s]", address, opt.AwsPSync)
-	return ""
-}
 
 type State string
 
@@ -59,6 +33,8 @@ const (
 	kSyncRdb    State = "syncing rdb"
 	kSyncAof    State = "syncing aof"
 )
+
+var _ reader.Reader = (*syncStandaloneReader)(nil)
 
 type syncStandaloneReader struct {
 	ctx    context.Context
@@ -94,13 +70,22 @@ type syncStandaloneReader struct {
 	}
 }
 
-func NewSyncStandaloneReader(ctx context.Context, opts *SyncReaderOptions) Reader {
+func NewSyncStandaloneReader(ctx context.Context, opts ...SyncReaderOption) reader.Reader {
+	opt := new(SyncReaderOptions)
+	defaults.SetDefaults(opt)
+	for _, o := range opts {
+		o(opt)
+	}
+	return newSyncStandaloneReader(ctx, opt)
+}
+
+func newSyncStandaloneReader(ctx context.Context, opt *SyncReaderOptions) reader.Reader {
 	r := new(syncStandaloneReader)
-	r.opts = opts
-	r.client = client.NewRedisClient(ctx, opts.Address, opts.Username, opts.Password, opts.Tls, opts.PreferReplica)
+	r.opts = opt
+	r.client = client.NewRedisClient(ctx, opt.address, opt.username, opt.password, opt.tls, opt.PreferReplica)
 	r.rd = r.client.BufioReader()
-	r.stat.Name = "reader_" + strings.Replace(opts.Address, ":", "_", -1)
-	r.stat.Address = opts.Address
+	r.stat.Name = "reader_" + strings.Replace(opt.address, ":", "_", -1)
+	r.stat.Address = opt.address
 	r.stat.Status = kHandShake
 	r.stat.Dir = utils.GetAbsPath(r.stat.Name)
 	utils.CreateEmptyDir(r.stat.Dir)

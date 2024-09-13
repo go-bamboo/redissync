@@ -1,20 +1,23 @@
-package reader
+package scan
 
 import (
 	"context"
 	"fmt"
+	"github.com/go-bamboo/redissync/reader"
 	"sync"
 
 	"github.com/go-bamboo/redissync/entry"
 	"github.com/go-bamboo/redissync/utils"
 )
 
+var _ reader.Reader = (*scanClusterReader)(nil)
+
 type scanClusterReader struct {
-	readers  []Reader
+	readers  []reader.Reader
 	statusId int
 }
 
-func NewScanClusterReader(ctx context.Context, opts *ScanReaderOptions) Reader {
+func NewScanClusterReader(ctx context.Context, opts *reader.ScanReaderOptions) reader.Reader {
 	addresses, _ := utils.GetRedisClusterNodes(ctx, opts.Address, opts.Username, opts.Password, opts.Tls, opts.PreferReplica)
 
 	rd := &scanClusterReader{}
@@ -31,7 +34,7 @@ func (rd *scanClusterReader) StartRead(ctx context.Context) chan *entry.Entry {
 	var wg sync.WaitGroup
 	for _, r := range rd.readers {
 		wg.Add(1)
-		go func(r Reader) {
+		go func(r reader.Reader) {
 			for e := range r.StartRead(ctx) {
 				ch <- e
 			}

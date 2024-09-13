@@ -1,9 +1,10 @@
-package reader
+package scan
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/go-bamboo/redissync/reader"
 	"math/bits"
 	"regexp"
 	"strconv"
@@ -17,22 +18,7 @@ import (
 	"github.com/go-bamboo/redissync/utils"
 )
 
-type ScanReaderOptions struct {
-	Cluster       bool   `mapstructure:"cluster" default:"false"`
-	Address       string `mapstructure:"address" default:""`
-	Username      string `mapstructure:"username" default:""`
-	Password      string `mapstructure:"password" default:""`
-	Tls           bool   `mapstructure:"tls" default:"false"`
-	Scan          bool   `mapstructure:"scan" default:"true"`
-	KSN           bool   `mapstructure:"ksn" default:"false"`
-	DBS           []int  `mapstructure:"dbs"`
-	PreferReplica bool   `mapstructure:"prefer_replica" default:"false"`
-	Count         int    `mapstructure:"count" default:"1"`
-
-	// advanced
-	RDBRestoreCommandBehavior  string `mapstructure:"rdb_restore_command_behavior" default:"panic"`
-	TargetRedisProtoMaxBulkLen uint64 `mapstructure:"target_redis_proto_max_bulk_len" default:"512000000"`
-}
+var _ reader.Reader = (*scanStandaloneReader)(nil)
 
 type dbKey struct {
 	db  int
@@ -47,7 +33,7 @@ type needRestoreItem struct {
 type scanStandaloneReader struct {
 	ctx             context.Context
 	dbs             []int
-	opts            *ScanReaderOptions
+	opts            *reader.ScanReaderOptions
 	ch              chan *entry.Entry
 	needDumpQueue   *utils.UniqueQueue
 	needRestoreChan chan *needRestoreItem
@@ -63,7 +49,7 @@ type scanStandaloneReader struct {
 	}
 }
 
-func NewScanStandaloneReader(ctx context.Context, opts *ScanReaderOptions) Reader {
+func NewScanStandaloneReader(ctx context.Context, opts *reader.ScanReaderOptions) reader.Reader {
 	r := new(scanStandaloneReader)
 	// dbs
 	c := client.NewRedisClient(ctx, opts.Address, opts.Username, opts.Password, opts.Tls, opts.PreferReplica)

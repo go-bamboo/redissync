@@ -1,4 +1,4 @@
-package reader
+package sync
 
 import (
 	"context"
@@ -7,25 +7,34 @@ import (
 
 	"github.com/go-bamboo/redissync/entry"
 	"github.com/go-bamboo/redissync/log"
+	"github.com/go-bamboo/redissync/reader"
 	"github.com/go-bamboo/redissync/utils"
+	"github.com/mcuadros/go-defaults"
 )
 
+var _ reader.Reader = (*syncClusterReader)(nil)
+
 type syncClusterReader struct {
-	readers  []Reader
+	readers  []reader.Reader
 	statusId int
 }
 
-func NewSyncClusterReader(ctx context.Context, opts *SyncReaderOptions) Reader {
-	addresses, _ := utils.GetRedisClusterNodes(ctx, opts.Address, opts.Username, opts.Password, opts.Tls, opts.PreferReplica)
+func NewSyncClusterReader(ctx context.Context, opts ...SyncReaderOption) reader.Reader {
+	opt := new(SyncReaderOptions)
+	defaults.SetDefaults(opt)
+	for _, o := range opts {
+		o(opt)
+	}
+	addresses, _ := utils.GetRedisClusterNodes(ctx, opt.address, opt.username, opt.password, opt.tls, opt.PreferReplica)
 	log.Debugf("get redis cluster nodes:")
 	for _, address := range addresses {
 		log.Debugf("%s", address)
 	}
 	rd := &syncClusterReader{}
 	for _, address := range addresses {
-		theOpts := *opts
-		theOpts.Address = address
-		rd.readers = append(rd.readers, NewSyncStandaloneReader(ctx, &theOpts))
+		theOpts := *opt
+		theOpts.address = address
+		rd.readers = append(rd.readers, newSyncStandaloneReader(ctx, &theOpts))
 	}
 	return rd
 }
@@ -35,7 +44,7 @@ func (rd *syncClusterReader) StartRead(ctx context.Context) chan *entry.Entry {
 	var wg sync.WaitGroup
 	for _, r := range rd.readers {
 		wg.Add(1)
-		go func(r Reader) {
+		go func(r reader.Reader) {
 			defer wg.Done()
 			for e := range r.StartRead(ctx) {
 				ch <- e
