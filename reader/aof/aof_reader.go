@@ -34,18 +34,6 @@ type aofReader struct {
 	}
 }
 
-func (r *aofReader) Status() interface{} {
-	return r.stat
-}
-
-func (r *aofReader) StatusString() string {
-	return r.stat.AOFStatus
-}
-
-func (r *aofReader) StatusConsistent() bool {
-	return r.stat.AOFFileSentBytes == r.stat.AOFFileSizeBytes
-}
-
 func NewAOFReader(opts *AOFReaderOptions) reader.Reader {
 	log.Infof("NewAOFReader: path=[%s]", opts.Filepath)
 	absolutePath, err := filepath.Abs(opts.Filepath)
@@ -102,4 +90,16 @@ func (r *aofReader) StartRead(ctx context.Context) chan *entry.Entry {
 	}()
 
 	return r.ch
+}
+
+func (r *aofReader) Status() interface{} {
+	return r.stat
+}
+
+func (r *aofReader) StatusString() string {
+	return r.stat.AOFStatus
+}
+
+func (r *aofReader) StatusConsistent() bool {
+	return r.stat.AOFFileSentBytes == r.stat.AOFFileSizeBytes
 }
