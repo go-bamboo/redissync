@@ -22,19 +22,7 @@ const (
 	SizeMax   = 128
 )
 
-type Loader struct {
-	filePath string
-	ch       chan *entry.Entry
-}
-
-func NewLoader(filePath string, ch chan *entry.Entry) *Loader {
-	ld := new(Loader)
-	ld.ch = ch
-	ld.filePath = filePath
-	return ld
-}
-
-func ReadCompleteLine(reader *bufio.Reader) ([]byte, error) {
+func readCompleteLine(reader *bufio.Reader) ([]byte, error) {
 	line, isPrefix, err := reader.ReadLine()
 	if err != nil {
 		return nil, err
@@ -50,6 +38,18 @@ func ReadCompleteLine(reader *bufio.Reader) ([]byte, error) {
 	}
 
 	return line, err
+}
+
+type Loader struct {
+	filePath string
+	ch       chan *entry.Entry
+}
+
+func NewLoader(filePath string, ch chan *entry.Entry) *Loader {
+	ld := new(Loader)
+	ld.ch = ch
+	ld.filePath = filePath
+	return ld
 }
 
 func (ld *Loader) LoadSingleAppendOnlyFile(ctx context.Context, timestamp int64) int {
@@ -85,7 +85,7 @@ func (ld *Loader) LoadSingleAppendOnlyFile(ctx context.Context, timestamp int64)
 		case <-ctx.Done():
 			return ret
 		default:
-			line, err := ReadCompleteLine(reader)
+			line, err := readCompleteLine(reader)
 			if err != nil {
 				if err == io.EOF {
 					return ret
@@ -133,7 +133,7 @@ func (ld *Loader) LoadSingleAppendOnlyFile(ctx context.Context, timestamp int64)
 			var argv []string
 
 			for j := 0; j < int(argc); j++ {
-				line, err := ReadCompleteLine(reader)
+				line, err := readCompleteLine(reader)
 				if err != nil || line[0] != '$' {
 					log.Infof("Bad File format reading the append only File %v:make a backup of your AOF File, then use ./redis-check-AOF --fix <FileName.manifest>", filePath)
 					ret = Failed
@@ -141,7 +141,7 @@ func (ld *Loader) LoadSingleAppendOnlyFile(ctx context.Context, timestamp int64)
 				}
 				v64, _ := strconv.ParseInt(string(line[1:]), 10, 64)
 				var argString []byte
-				argString, err = ReadCompleteLine(reader)
+				argString, err = readCompleteLine(reader)
 				if err != nil {
 					log.Infof("Unrecoverable error reading the append only File %v: %v", filePath, err)
 					ret = Failed
