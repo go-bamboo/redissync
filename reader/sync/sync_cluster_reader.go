@@ -25,7 +25,7 @@ func NewSyncClusterReader(ctx context.Context, opts ...SyncReaderOption) reader.
 	for _, o := range opts {
 		o(opt)
 	}
-	addresses, _ := utils.GetRedisClusterNodes(ctx, opt.address, opt.username, opt.password, opt.tls, opt.PreferReplica)
+	addresses, _ := utils.GetRedisClusterNodes(ctx, opt.address, opt.username, opt.password, opt.tls, opt.preferReplica)
 	log.Debugf("get redis cluster nodes:")
 	for _, address := range addresses {
 		log.Debugf("%s", address)

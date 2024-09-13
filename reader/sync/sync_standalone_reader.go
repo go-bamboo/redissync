@@ -82,7 +82,7 @@ func NewSyncStandaloneReader(ctx context.Context, opts ...SyncReaderOption) read
 func newSyncStandaloneReader(ctx context.Context, opt *SyncReaderOptions) reader.Reader {
 	r := new(syncStandaloneReader)
 	r.opts = opt
-	r.client = client.NewRedisClient(ctx, opt.address, opt.username, opt.password, opt.tls, opt.PreferReplica)
+	r.client = client.NewRedisClient(ctx, opt.address, opt.username, opt.password, opt.tls, opt.preferReplica)
 	r.rd = r.client.BufioReader()
 	r.stat.Name = "reader_" + strings.Replace(opt.address, ":", "_", -1)
 	r.stat.Address = opt.address
@@ -102,10 +102,10 @@ func (r *syncStandaloneReader) StartRead(ctx context.Context) chan *entry.Entry 
 		startOffset := r.stat.AofReceivedOffset
 		go r.sendReplconfAck() // start sent replconf ack
 		go r.receiveAOF(r.rd)
-		if r.opts.SyncRdb {
+		if r.opts.syncRdb {
 			r.sendRDB(rdbFilePath)
 		}
-		if r.opts.SyncAof {
+		if r.opts.syncAof {
 			r.stat.Status = kSyncAof
 			r.sendAOF(startOffset)
 		}
@@ -117,7 +117,7 @@ func (r *syncStandaloneReader) StartRead(ctx context.Context) chan *entry.Entry 
 
 func (r *syncStandaloneReader) sendReplconfListenPort() {
 	// use status_port as redis-shake port
-	argv := []interface{}{"replconf", "listening-port", strconv.Itoa(r.opts.StatusPort)}
+	argv := []interface{}{"replconf", "listening-port", strconv.Itoa(r.opts.statusPort)}
 	r.client.Send(argv...)
 	_, err := r.client.Receive()
 	if err != nil {
@@ -126,7 +126,7 @@ func (r *syncStandaloneReader) sendReplconfListenPort() {
 }
 
 func (r *syncStandaloneReader) sendPSync() {
-	if r.opts.TryDiskless {
+	if r.opts.tryDiskless {
 		argv := []interface{}{"REPLCONF", "CAPA", "EOF"}
 		reply := r.client.DoWithStringReply(argv...)
 		if reply != "OK" {
